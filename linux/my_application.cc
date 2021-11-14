@@ -1,5 +1,12 @@
 #include "my_application.h"
 
+#include <cstdio>
+#include <iostream>
+#include <memory>
+#include <stdexcept>
+#include <string>
+#include <array>
+
 #include <flutter_linux/flutter_linux.h>
 #ifdef GDK_WINDOWING_X11
 #include <gdk/gdkx.h>
@@ -13,6 +20,48 @@ struct _MyApplication {
 };
 
 G_DEFINE_TYPE(MyApplication, my_application, GTK_TYPE_APPLICATION)
+
+
+std::string exec(const char* cmd) {
+    std::array<char, 128> buffer;
+    std::string result;
+    std::unique_ptr<FILE, decltype(&pclose)> pipe(popen(cmd, "r"), pclose);
+    if (!pipe) {
+        throw std::runtime_error("popen() failed!");
+    }
+    while (fgets(buffer.data(), buffer.size(), pipe.get()) != nullptr) {
+        result += buffer.data();
+    }
+    return result;
+}
+
+static void respond(FlMethodCall *method_call,
+                    FlMethodResponse *response)
+{
+  g_autoptr(GError) error = nullptr;
+  if (!fl_method_call_respond(method_call, response, &error))
+  {
+    g_warning("Failed to send method call response: %s", error->message);
+  }
+}
+
+static void method_call_cb(FlMethodChannel *channel,
+                           FlMethodCall *method_call,
+                           gpointer user_data)
+{
+  const gchar *method = fl_method_call_get_name(method_call);
+  const gchar *stderr_append = " 2>&1";
+  const gchar *method_w_stderr = g_strconcat(method, stderr_append, NULL);
+
+  std::string resultString  = exec(method_w_stderr);
+
+  FlValue *res = fl_value_new_string(resultString.c_str());
+
+          // Send it back to Dart
+  g_autoptr(FlMethodResponse) response = FL_METHOD_RESPONSE(fl_method_success_response_new(res));
+
+    respond(method_call, response);
+}
 
 // Implements GApplication::activate.
 static void my_application_activate(GApplication* application) {
@@ -58,6 +107,28 @@ static void my_application_activate(GApplication* application) {
   gtk_container_add(GTK_CONTAINER(window), GTK_WIDGET(view));
 
   fl_register_plugins(FL_PLUGIN_REGISTRY(view));
+
+  // START OF OUR CUSTOM  BLOCK
+
+  // Get engine from view
+  FlEngine *engine = fl_view_get_engine(view);
+
+  g_autoptr(FlStandardMethodCodec) codec = fl_standard_method_codec_new();
+  g_autoptr(FlBinaryMessenger) messenger = fl_engine_get_binary_messenger(engine);
+  g_autoptr(FlMethodChannel) channel =
+      fl_method_channel_new(messenger,
+                            "no.nils.podmanui/desktop",  // this is our channel name
+                            FL_METHOD_CODEC(codec));
+  fl_method_channel_set_method_call_handler(channel,
+  // Method which will be called when we call invokeMethod() from dart
+                                            method_call_cb,
+                                            g_object_ref(view),
+                                            g_object_unref);
+
+  fl_method_channel_set_method_call_handler(channel,
+                            method_call_cb, g_object_ref(view), g_object_unref);
+
+  // END OF OUR CUSTOM BLOCK
 
   gtk_widget_grab_focus(GTK_WIDGET(view));
 }
