@@ -1,8 +1,7 @@
 import 'package:flutter/material.dart';
+import 'package:podmanui/src/container_list/container_list_view.dart';
 import 'package:podmanui/src/image_list/image_list_view.dart';
 import 'package:podmanui/src/pod_list/pod_list_view.dart';
-
-import 'container_list/container_list_view.dart';
 
 Drawer appDrawer(BuildContext context) => Drawer(
       child: Padding(
