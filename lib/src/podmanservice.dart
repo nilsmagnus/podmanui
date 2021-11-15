@@ -2,7 +2,8 @@ import 'dart:convert';
 
 import 'package:flutter/services.dart';
 import 'package:podmanui/src/image_list/image.dart';
-import 'package:podmanui/src/pod_list/container.dart';
+
+import 'container_list/container.dart';
 
 class PodmanService {
   static const _platform = MethodChannel('no.nils.podmanui/desktop');
@@ -38,20 +39,53 @@ class PodmanService {
   }
 
   Future<List<PodmanImage>> images() async {
-    return List.empty(); //TODO
+    return _platform.invokeMethod("podman images").then((value) {
+      switch (value.runtimeType) {
+        case String:
+          return parseImageResult(value as String);
+      }
+      return List.empty();
+    });
   }
 
-  Future<dynamic> delete(String containerId) async {
-    await _platform.invokeMethod("podman rm $containerId");
+  Future<String> deleteContainer(String containerId) async {
+    return _platform.invokeMethod("podman rm $containerId").then((value) => "$value");
   }
 
-  Future<dynamic> restart(String containerId) async {
-    await _platform.invokeMethod("podman restart $containerId");
+  Future<String> deleteImage(String imageId) async {
+    return _platform.invokeMethod("podman image rm $imageId").then((value) {
+      return "${value}".trim();
+    });
   }
 
-  Future<dynamic> stop(String containerId) async {
-    await _platform.invokeMethod("podman stop $containerId");
+  Future<String> restart(String containerId) async {
+    return _platform.invokeMethod("podman restart $containerId").then((value) => "$value");
   }
+
+  Future<String> stop(String containerId) async {
+    return _platform.invokeMethod("podman stop $containerId").then((value) => "$value");
+  }
+}
+
+List<PodmanImage> parseImageResult(String value) {
+  final lines = value.split("\n");
+  if (lines.length <= 1) {
+    return List.empty();
+  }
+
+  // header-line
+  final header = lines.removeAt(0);
+
+  final List<PodmanImage> result = List.empty(growable: true);
+
+  lines
+      .map((line) => line.isNotEmpty ? PodmanImage.fromHeaderAndLine(header, line) : null)
+      .where((element) => element != null)
+      .forEach((element) {
+    result.add(element!);
+  });
+
+  return result;
 }
 
 List<PodContainer> parsePsResult(String value) {

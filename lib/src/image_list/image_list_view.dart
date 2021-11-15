@@ -3,9 +3,9 @@ import 'dart:developer';
 import 'package:flutter/material.dart';
 import 'package:podmanui/src/podmanservice.dart';
 
+import '../appdrawer.dart';
 import '../settings/settings_view.dart';
 import 'image.dart';
-import 'image_details_view.dart';
 
 class ImageListView extends StatefulWidget {
   const ImageListView({Key? key}) : super(key: key);
@@ -40,8 +40,9 @@ class _ImageListViewState extends State<ImageListView> {
         tooltip: "Refresh",
         onPressed: refreshImages,
       ),
+      drawer: appDrawer(context),
       appBar: AppBar(
-        title: const Text('podman ps'),
+        title: const Text('podman images'),
         actions: [
           IconButton(
             icon: const Icon(Icons.settings),
@@ -52,30 +53,34 @@ class _ImageListViewState extends State<ImageListView> {
         ],
       ),
       body: items.isEmpty
-          ? const Center(child: Text("No running containers"))
+          ? const Center(child: Text("No images found"))
           : ListView.builder(
-              restorationId: 'containerListView',
+              restorationId: 'imageListView',
               itemCount: items.length,
               itemBuilder: (BuildContext context, int index) {
                 final item = items[index];
                 return ListTile(
-                    title: Text('${item.imageId}'),
-                    leading: const CircleAvatar(
-                      foregroundImage: AssetImage('assets/images/flutter_logo.png'),
-                    ),
-                    subtitle: Row(
+                  title: Text('${item.repository}'),
+                  subtitle: Text("${item.tag} ${item.imageId} ${item.created}"),
+                  trailing: SizedBox(
+                    width: 120,
+                    child: Row(
                       children: [
-                        Text(" TODO"),
+                        Text(item.size),
+                        IconButton(
+                          onPressed: () {
+                            PodmanService()
+                                .deleteImage(item.imageId)
+                                .onError((error, stackTrace) => showMessage(context, "Error removing image: $error"))
+                                .then((value) => showMessage(context, value))
+                                .whenComplete(() => refreshImages());
+                          },
+                          icon: const Icon(Icons.delete),
+                        ),
                       ],
                     ),
-                    trailing: Text(item.tag),
-                    onTap: () {
-                      Navigator.restorablePushNamed(
-                        context,
-                        ImageDetailsView.routeName,
-                        arguments: item.imageId,
-                      );
-                    });
+                  ),
+                );
               },
             ),
     );

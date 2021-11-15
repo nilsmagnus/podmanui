@@ -21,7 +21,7 @@ extension String {
         let pipe = Pipe()
         let process = Process()
         process.launchPath = "/bin/sh"
-        process.arguments = ["-c", self]
+        process.arguments = ["-c", self + " 2>&1"]
         process.standardOutput = pipe
         let fileHandle = pipe.fileHandleForReading
         process.launch()

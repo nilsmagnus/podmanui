@@ -3,6 +3,7 @@ import 'dart:developer';
 import 'package:flutter/material.dart';
 import 'package:podmanui/src/podmanservice.dart';
 
+import '../appdrawer.dart';
 import '../settings/settings_view.dart';
 import 'container.dart';
 import 'container_details_view.dart';
@@ -40,6 +41,7 @@ class _ContainerListViewState extends State<ContainerListView> {
         tooltip: "Refresh",
         onPressed: refreshPs,
       ),
+      drawer: appDrawer(context),
       appBar: AppBar(
         title: const Text('podman ps'),
         actions: [
@@ -72,22 +74,28 @@ class _ContainerListViewState extends State<ContainerListView> {
                           IconButton(
                               tooltip: "Restart",
                               onPressed: () async {
-                                await PodmanService().restart(item.containerId);
-                                refreshPs();
+                                PodmanService()
+                                    .restart(item.containerId)
+                                    .then((value) => showMessage(context, value))
+                                    .whenComplete(() => refreshPs());
                               },
                               icon: Icon(Icons.refresh)),
                           IconButton(
                               tooltip: "Stop",
                               onPressed: () async {
-                                await PodmanService().stop(item.containerId);
-                                refreshPs();
+                                PodmanService()
+                                    .stop(item.containerId)
+                                    .then((value) => showMessage(context, value))
+                                    .whenComplete(() => refreshPs());
                               },
                               icon: Icon(Icons.stop)),
                           IconButton(
                               tooltip: "Delete",
                               onPressed: () async {
-                                await PodmanService().delete(item.containerId);
-                                refreshPs();
+                                PodmanService()
+                                    .deleteContainer(item.containerId)
+                                    .then((value) => showMessage(context, value))
+                                    .whenComplete(() => refreshPs());
                               },
                               icon: Icon(Icons.delete))
                         ],
