@@ -2,6 +2,7 @@ import 'package:flutter/material.dart';
 import 'package:flutter_gen/gen_l10n/app_localizations.dart';
 import 'package:flutter_localizations/flutter_localizations.dart';
 import 'package:podmanui/src/image_list/image_list_view.dart';
+import 'package:podmanui/src/pod_list/pod_list_view.dart';
 
 import 'container_list/container_details_view.dart';
 import 'container_list/container_list_view.dart';
@@ -75,6 +76,8 @@ class MyApp extends StatelessWidget {
                     return const ContainerListView();
                   case ImageListView.routeName:
                     return const ImageListView();
+                  case PodListView.routeName:
+                    return const PodListView();
                   default:
                     return const ContainerListView();
                 }

@@ -11,7 +11,7 @@ b2b57b6be362  docker.io/library/postgres:13.4  postgres    9 days ago  Up 9 days
 """;
       final pods = parsePsResult(rawLines);
       expect(1, pods.length);
-      expect("b2b57b6be362", pods[0].containerId);
+      expect("b2b57b6be362", pods[0].podId);
       expect("docker.io/library/postgres:13.4", pods[0].image);
       expect("postgres", pods[0].command);
       expect("9 days ago", pods[0].created);

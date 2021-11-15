@@ -1,34 +1,33 @@
 import 'dart:developer';
 
 import 'package:flutter/material.dart';
+import 'package:podmanui/src/pod_list/pod_details_view.dart';
+import 'package:podmanui/src/pod_list/podmanpod.dart';
 import 'package:podmanui/src/podmanservice.dart';
 
 import '../appdrawer.dart';
 import '../settings/settings_view.dart';
-import 'container.dart';
-import 'container_details_view.dart';
 
-class ContainerListView extends StatefulWidget {
-  const ContainerListView({Key? key}) : super(key: key);
+class PodListView extends StatefulWidget {
+  const PodListView({Key? key}) : super(key: key);
 
-  static const routeName = '/containerlist';
+  static const routeName = '/podlist';
 
   @override
-  State<ContainerListView> createState() => _ContainerListViewState();
+  State<PodListView> createState() => _PodListViewState();
 }
 
-class _ContainerListViewState extends State<ContainerListView> {
-  List<PodContainer> items = [];
+class _PodListViewState extends State<PodListView> {
+  List<PodmanPod> items = [];
 
   @override
   void initState() {
     super.initState();
-    log("init");
-    refreshPs();
+    refreshPods();
   }
 
-  void refreshPs() {
-    PodmanService().ps().then((value) => setState(() {
+  void refreshPods() {
+    PodmanService().pods().then((value) => setState(() {
           items = value;
         }));
   }
@@ -39,11 +38,11 @@ class _ContainerListViewState extends State<ContainerListView> {
       floatingActionButton: FloatingActionButton(
         child: const Icon(Icons.refresh),
         tooltip: "Refresh",
-        onPressed: refreshPs,
+        onPressed: refreshPods,
       ),
       drawer: appDrawer(context),
       appBar: AppBar(
-        title: const Text('podman ps'),
+        title: const Text('podman pod ls'),
         actions: [
           IconButton(
             icon: const Icon(Icons.settings),
@@ -54,18 +53,19 @@ class _ContainerListViewState extends State<ContainerListView> {
         ],
       ),
       body: items.isEmpty
-          ? const Center(child: Text("No running containers"))
+          ? const Center(child: Text("No pods"))
           : ListView.builder(
-              restorationId: 'containerListView',
+              restorationId: 'podListView',
               itemCount: items.length,
               itemBuilder: (BuildContext context, int index) {
                 final item = items[index];
                 return ListTile(
-                    title: Text('${item.image} (${item.names})  ${item.status}'),
+                    title: Text('${item.name} (${item.podId})  ${item.status}'),
                     leading: CircleAvatar(
-                      child: Text(item.image.substring(0, 2)),
+                      child: Text(item.infraId.substring(0, 2)),
                     ),
-                    subtitle: Text(" Command '${item.command}' created ${item.created} with ports '${item.ports}'"),
+                    subtitle:
+                        Text(" Command '${item.status}' created ${item.created} with ports '${item.containerCount}'"),
                     trailing: SizedBox(
                       width: 200,
                       child: Row(
@@ -75,27 +75,27 @@ class _ContainerListViewState extends State<ContainerListView> {
                               tooltip: "Restart",
                               onPressed: () async {
                                 PodmanService()
-                                    .restart(item.containerId)
+                                    .restartPod(item.podId)
                                     .then((value) => showMessage(context, value))
-                                    .whenComplete(() => refreshPs());
+                                    .whenComplete(() => refreshPods());
                               },
                               icon: Icon(Icons.refresh)),
                           IconButton(
                               tooltip: "Stop",
                               onPressed: () async {
                                 PodmanService()
-                                    .stop(item.containerId)
+                                    .stopPod(item.podId)
                                     .then((value) => showMessage(context, value))
-                                    .whenComplete(() => refreshPs());
+                                    .whenComplete(() => refreshPods());
                               },
                               icon: Icon(Icons.stop)),
                           IconButton(
                               tooltip: "Delete",
                               onPressed: () async {
                                 PodmanService()
-                                    .deleteContainer(item.containerId)
+                                    .deletePod(item.podId)
                                     .then((value) => showMessage(context, value))
-                                    .whenComplete(() => refreshPs());
+                                    .whenComplete(() => refreshPods());
                               },
                               icon: Icon(Icons.delete))
                         ],
@@ -107,8 +107,8 @@ class _ContainerListViewState extends State<ContainerListView> {
                     onTap: () {
                       Navigator.restorablePushNamed(
                         context,
-                        ContainerDetailsView.routeName,
-                        arguments: item.containerId,
+                        PodDetailsView.routeName,
+                        arguments: item.podId,
                       );
                     });
               },
