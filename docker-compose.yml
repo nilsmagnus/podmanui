@@ -1,0 +1,18 @@
+version: '3.7'
+services:
+  db:
+    image: postgres:10
+    ports:
+      - 5433:5432
+    environment:
+      POSTGRES_PASSWORD: foo
+
+
+  zookeeper:
+    image: zookeper:3.7.0
+    hostname: zookeeper
+    container_name: zookeeper
+    ports:
+      - "2181:2181"
+    environment:
+      ZOO_MY_ID: 1

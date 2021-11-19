@@ -1,3 +1,5 @@
+import 'dart:developer';
+
 class PodContainer {
   final String containerId;
   final String image;
@@ -19,5 +21,10 @@ class PodContainer {
       line.substring(header.indexOf("PORTS"), header.indexOf("NAMES")).trim(),
       line.substring(header.indexOf("NAMES")).trim(),
     );
+  }
+
+  bool get isRunning {
+    log("status is ${status.toLowerCase()}, bool should be");
+    return !status.toLowerCase().contains("exit");
   }
 }

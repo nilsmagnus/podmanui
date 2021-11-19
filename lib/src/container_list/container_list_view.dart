@@ -27,9 +27,10 @@ class _ContainerListViewState extends State<ContainerListView> {
     refreshPs();
   }
 
-  void refreshPs() {
+  void refreshPs() async {
     PodmanService().ps().then((value) => setState(() {
           items = value;
+          showMessage(context, "Refresh done");
         }));
   }
 
@@ -58,61 +59,76 @@ class _ContainerListViewState extends State<ContainerListView> {
           : ListView.builder(
               restorationId: 'containerListView',
               itemCount: items.length,
-              itemBuilder: (BuildContext context, int index) {
-                final item = items[index];
-                return ListTile(
-                    title: Text('${item.image} (${item.names})  ${item.status}'),
-                    leading: CircleAvatar(
-                      child: Text(item.image.substring(0, 2)),
-                    ),
-                    subtitle: Text(" Command '${item.command}' created ${item.created} with ports '${item.ports}'"),
-                    trailing: SizedBox(
-                      width: 200,
-                      child: Row(
-                        mainAxisAlignment: MainAxisAlignment.end,
-                        children: [
-                          IconButton(
-                              tooltip: "Restart",
-                              onPressed: () async {
-                                PodmanService()
-                                    .restart(item.containerId)
-                                    .then((value) => showMessage(context, value))
-                                    .whenComplete(() => refreshPs());
-                              },
-                              icon: Icon(Icons.refresh)),
-                          IconButton(
-                              tooltip: "Stop",
-                              onPressed: () async {
-                                PodmanService()
-                                    .stop(item.containerId)
-                                    .then((value) => showMessage(context, value))
-                                    .whenComplete(() => refreshPs());
-                              },
-                              icon: Icon(Icons.stop)),
-                          IconButton(
-                              tooltip: "Delete",
-                              onPressed: () async {
-                                PodmanService()
-                                    .deleteContainer(item.containerId)
-                                    .then((value) => showMessage(context, value))
-                                    .whenComplete(() => refreshPs());
-                              },
-                              icon: Icon(Icons.delete))
-                        ],
-                      ),
-                    ),
-                    onLongPress: () {
-                      log("longpress");
-                    },
-                    onTap: () {
-                      Navigator.restorablePushNamed(
-                        context,
-                        ContainerDetailsView.routeName,
-                        arguments: item.containerId,
-                      );
-                    });
-              },
+              itemBuilder: containerItemBuilder,
             ),
     );
   }
+
+  Widget containerItemBuilder(BuildContext context, int index) {
+    final item = items[index];
+    return ListTile(
+        title: Text('${item.image} (${item.names})  ${item.status}'),
+        leading: CircleAvatar(
+          child: Text(item.image.substring(0, 2)),
+        ),
+        subtitle: Text(" Command '${item.command}' created ${item.created} with ports '${item.ports}'"),
+        trailing: SizedBox(
+          width: 200,
+          child: Row(
+            mainAxisAlignment: MainAxisAlignment.end,
+            children: containerActions(item.containerId, context, item.isRunning, refreshPs),
+          ),
+        ),
+        onLongPress: () {
+          log("longpress");
+        },
+        onTap: () {
+          Navigator.restorablePushNamed(
+            context,
+            ContainerDetailsView.routeName,
+            arguments: item.containerId,
+          );
+        });
+  }
+}
+
+List<Widget> containerActions(String itemId, BuildContext context, bool isRunning, Function refreshPs) {
+  return [
+    IconButton(
+        tooltip: "Restart",
+        onPressed: () async {
+          PodmanService()
+              .restart(itemId)
+              .then(
+                (value) => showMessage(context, "Restarted: ${value}"),
+              )
+              .whenComplete(() => refreshPs());
+        },
+        icon: const Icon(Icons.refresh, color: Colors.green)),
+    if (isRunning)
+      IconButton(
+          tooltip: "Stop",
+          onPressed: () async {
+            PodmanService()
+                .stop(itemId)
+                .then((value) => showMessage(context, "Stop: ${value}"))
+                .whenComplete(() => refreshPs());
+          },
+          icon: Icon(Icons.stop))
+    else
+      IconButton(
+        onPressed: () {},
+        tooltip: "Already stopped",
+        icon: Icon(Icons.warning, color: Colors.grey.withAlpha(128)),
+      ),
+    IconButton(
+        tooltip: "Delete",
+        onPressed: () async {
+          PodmanService()
+              .deleteContainer(itemId)
+              .then((value) => showMessage(context, value))
+              .whenComplete(() => refreshPs());
+        },
+        icon: const Icon(Icons.delete, color: Colors.red))
+  ];
 }

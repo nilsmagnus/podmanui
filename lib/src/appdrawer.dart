@@ -10,14 +10,14 @@ Drawer appDrawer(BuildContext context) => Drawer(
           crossAxisAlignment: CrossAxisAlignment.start,
           children: [
             textButton(context, "Containers", ContainerListView.routeName),
-            textButton(context, "Pods", PodListView.routeName),
+            textButton(context, "Pods/compositions", PodListView.routeName),
             textButton(context, "Images", ImageListView.routeName),
           ],
         ),
       ),
     );
 
-TextButton textButton(BuildContext context, String label, String route) => TextButton(
+Widget textButton(BuildContext context, String label, String route) => TextButton(
       onPressed: () => Navigator.restorablePushNamed(context, route),
       child: Text(label),
     );

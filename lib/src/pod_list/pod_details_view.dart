@@ -1,4 +1,6 @@
 import 'package:flutter/material.dart';
+import 'package:podmanui/src/container_list/container_details_view.dart';
+import 'package:podmanui/src/container_list/container_list_view.dart';
 import 'package:podmanui/src/podmanservice.dart';
 
 /// Displays detailed information about a SampleItem.
@@ -15,7 +17,6 @@ class PodDetailsView extends StatefulWidget {
 
 class _PodDetailsViewViewState extends State<PodDetailsView> {
   Future<dynamic> details = Future.value([]);
-  Future<String> logs = Future.value("");
 
   _PodDetailsViewViewState();
 
@@ -28,7 +29,6 @@ class _PodDetailsViewViewState extends State<PodDetailsView> {
   void refresh() {
     setState(() {
       details = PodmanService().inspect(widget.name);
-      logs = PodmanService().logs(widget.name);
     });
   }
 
@@ -45,7 +45,7 @@ class _PodDetailsViewViewState extends State<PodDetailsView> {
         appBar: AppBar(
           title: Row(
             children: [
-              Expanded(child: Text('${widget.name} details')),
+              Expanded(child: Text('Pod ${widget.name} details')),
               IconButton(
                 onPressed: () => PodmanService().stop(widget.name),
                 icon: const Icon(Icons.stop),
@@ -55,7 +55,7 @@ class _PodDetailsViewViewState extends State<PodDetailsView> {
           ),
           bottom: const TabBar(
             tabs: [
-              Tab(text: "Logs"),
+              Tab(text: "Containers in pod "),
               Tab(text: "Details"),
             ],
           ),
@@ -63,11 +63,51 @@ class _PodDetailsViewViewState extends State<PodDetailsView> {
         body: TabBarView(
           physics: const NeverScrollableScrollPhysics(),
           children: [
-            futureView(logs),
+            FutureBuilder<dynamic>(
+              future: details,
+              builder: (c, d) {
+                if (d.hasData) {
+                  return containersInPod(d.data);
+                } else {
+                  return const Text("Loading");
+                }
+              },
+            ),
             futureViewData(details),
           ],
         ),
       ),
+    );
+  }
+
+  Widget containersInPod(dynamic details) {
+    final pods = ((((details as List<dynamic>)[0]) as Map<String, dynamic>)["Containers"] as List);
+    return ListView.builder(
+      itemBuilder: (c, i) {
+        final item = pods[i];
+        if (item is Map<String, dynamic>) {
+          return ListTile(
+            onTap: () {
+              Navigator.restorablePushNamed(
+                context,
+                ContainerDetailsView.routeName,
+                arguments: item["Id"],
+              );
+            },
+            leading: Text("${item["Name"]} ", style: const TextStyle(fontWeight: FontWeight.bold)),
+            trailing: SizedBox(
+              width: 130,
+              child: Row(
+                children:
+                    containerActions(item["Id"] as String, c, (item["State"] as String).contains("running"), refresh),
+              ),
+            ),
+          );
+        } else {
+          return Text("WTF!!!! $item (${item.runtimeType})");
+        }
+      },
+      itemCount: pods.length,
     );
   }
 
@@ -78,7 +118,7 @@ class _PodDetailsViewViewState extends State<PodDetailsView> {
         if (d.hasData) {
           return SingleChildScrollView(child: Text("${d.data}"));
         } else if (d.hasError) {
-          return Text("Some error occured: ${d.error}");
+          return Text("Some error occurred: ${d.error}");
         }
         return Center(child: Text("Fetching info for ${widget.name}..."));
       },
@@ -92,7 +132,7 @@ class _PodDetailsViewViewState extends State<PodDetailsView> {
         if (d.hasData) {
           return SingleChildScrollView(child: DataViewer(d.data[0]!));
         } else if (d.hasError) {
-          return Text("Some error occured: ${d.error}");
+          return Text("Some error occurred: ${d.error}");
         }
         return Center(child: Text("Fetching info for ${widget.name}..."));
       },
@@ -108,9 +148,9 @@ class DataViewer extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     if (data == null) {
-      return Text("");
+      return const Text("");
     } else if (data is String || data is int || data is bool || data is double) {
-      return Text("${data}");
+      return Text("$data");
     } else if (data is List) {
       return Row(children: (data as List).map((e) => (DataViewer(e))).toList());
     } else if (data is Map) {

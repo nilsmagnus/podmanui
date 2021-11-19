@@ -7,7 +7,7 @@ class ContainerDetailsView extends StatefulWidget {
 
   const ContainerDetailsView(this.name, {Key? key}) : super(key: key);
 
-  static const routeName = '/pod_details';
+  static const routeName = '/container_details';
 
   @override
   State<ContainerDetailsView> createState() => _ContainerDetailsViewState();
@@ -45,7 +45,7 @@ class _ContainerDetailsViewState extends State<ContainerDetailsView> {
         appBar: AppBar(
           title: Row(
             children: [
-              Expanded(child: Text('${widget.name} details')),
+              Expanded(child: Text('Container ${widget.name} details')),
               IconButton(
                 onPressed: () => PodmanService().stop(widget.name),
                 icon: const Icon(Icons.stop),
@@ -108,7 +108,7 @@ class DataViewer extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     if (data == null) {
-      return Text("");
+      return const Text("");
     } else if (data is String || data is int || data is bool || data is double) {
       return Text("${data}");
     } else if (data is List) {
